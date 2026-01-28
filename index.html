@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <title>Hutson vs Suzuki — Points Tracker</title>
 
-  <!-- Google Fonts -->
+  <!-- ✅ No more favicon 404 -->
+  <link rel="icon" href="data:,">
+
+  <!-- ✅ Correct Google Fonts links -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
@@ -110,7 +113,6 @@
 
     // --- Hardcoded player IDs (from NHL.com) ---
     // Lane Hutson: 8483457 ; Nick Suzuki: 8480018
-    // (We skip the Suggest service entirely to avoid DNS/ad-block hiccups.)  [1](https://mcgill-my.sharepoint.com/personal/jonathon_campbell_mcgill_ca/Documents/Microsoft%20Copilot%20Chat%20Files/index.html)[2](https://github.com/jonathonRcampbell/hutson-vs-suzuki)
     const IDS = { hutson: '8483457', suzuki: '8480018' };
 
     // --- NHL Stats API: single-season stats ---
@@ -188,12 +190,11 @@
       }catch(e){
         console.error('Final stats error:', e);
         loading.innerHTML='<div style="color: var(--canadiens-red);">Error loading stats. Please refresh.</div>';
-     ndUpdate();
-  </script>
+      }
+    }
 
-  <!-- Data sources:
-       - NHL Stats API (statsapi.web.nhl.com): statsSingleSeason for current regular season.  -->
-  <!-- Reference: NHL API usage examples & docs/wrappers. --> <!-- [3](https://github.com/search.html) -->
-  <!-- Player IDs verified from official NHL.com player pages (Hutson 8483457, Suzuki 8480018). --> <!-- [1](https://mcgill-my.sharepoint.com/personal/jonathon_campbell_mcgill_ca/Documents/Microsoft%20Copilot%20Chat%20Files/index.html)[2](https://github.com/jonathonRcampbell/hutson-vs-suzuki) -->
+    document.getElementById('refreshBtn').addEventListener('click', fetchAndUpdate);
+    fetchAndUpdate();
+  </script>
 </body>
 </html>
