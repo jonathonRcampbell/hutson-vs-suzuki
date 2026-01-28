@@ -1,507 +1,99 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hutson vs Suzuki | Points Tracker</title>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --ice-blue: #0a1628;
-            --canadiens-red: #af1e2d;
-            --bright-ice: #e8f4f8;
-            --highlight: #00d9ff;
-            --gold: #ffd700;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Hutson vs Suzuki — Points Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ice-blue: #0a1628;
+      --canadiens-red: #af1e2d;
+      --bright-ice: #e8f4f8;
+      --highlight: #00d9ff;
+      --gold: #ffd700;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      background: linear-gradient(135deg, var(--ice-blue) 0%, #1a2942 100%);
+      color: var(--bright-ice);
+      min-height: 100vh; overflow-x:hidden; position:relative;
+    }
+    body::before {
+      content:''; position:fixed; inset:0;
+      background:
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px),
+        repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px);
+      pointer-events:none; z-index:1;
+    }
+    .container { max-width:1200px; margin:0 auto; padding:40px 20px; position:relative; z-index:2; }
+    header { text-align:center; margin-bottom:60px; animation: slideDown .8s ease-out; }
+    @keyframes slideDown { from {opacity:0; transform:translateY(-30px);} to {opacity:1; transform:translateY(0);} }
+    h1 {
+      font-family: 'Bebas Neue', cursive;
+      font-size: clamp(3rem, 8vw, 7rem);
+      letter-spacing:.05em; margin-bottom:10px;
+      background: linear-gradient(135deg, var(--highlight) 0%, var(--bright-ice) 50%, var(--canadiens-red) 100%);
+      -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+      text-shadow:0 0 40px rgba(0, 217, 255, .3);
+    }
+    .tagline { font-size:1.2rem; color:var(--highlight); text-transform:uppercase; letter-spacing:.2em; font-weight:600; }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    .answer-box {
+      background: rgba(10,22,40,.6);
+      border:3px solid var(--canadiens-red);
+      border-radius:20px; padding:60px 40px; margin:40px 0; text-align:center;
+      position:relative; overflow:hidden; backdrop-filter: blur(10px);
+      box-shadow:0 20px 60px rgba(175,30,45,.3); animation: fadeIn 1s ease-out .3s both;
+    }
+    @keyframes fadeIn { from {opacity:0; transform:scale(.95);} to {opacity:1; transform:scale(1);} }
+    .answer-box::before {
+      content:''; position:absolute; inset:-2px;
+      background: linear-gradient(45deg, var(--canadiens-red), var(--highlight), var(--canadiens-red));
+      border-radius:20px; z-index:-1; opacity:0; animation:borderGlow 3s ease-in-out infinite;
+    }
+    @keyframes borderGlow { 0%,100%{opacity:0;} 50%{opacity:.3;} }
 
-        body {
-            font-family: 'Rajdhani', sans-serif;
-            background: linear-gradient(135deg, var(--ice-blue) 0%, #1a2942 100%);
-            color: var(--bright-ice);
-            min-height: 100vh;
-            overflow-x: hidden;
-            position: relative;
-        }
+    .loading { font-size:2rem; font-weight:700; color:var(--highlight); text-transform:uppercase; letter-spacing:.1em; }
+    .spinner { display:inline-block; width:40px; height:40px; border:4px solid rgba(0, 217, 255, .1); border-top:4px solid var(--highlight); border-radius:50%; animation: spin 1s linear infinite; margin:20px auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: 
-                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px),
-                repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px);
-            pointer-events: none;
-            z-index: 1;
-        }
+    .answer { font-family:'Bebas Neue', cursive; font-size: clamp(3rem, 6vw, 5rem); line-height:1.2; margin:20px 0; animation:pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.7;} }
+    .answer.yes { color:var(--gold); text-shadow:0 0 30px rgba(255,215,0,.5); }
+    .answer.no  { color:var(--canadiens-red); text-shadow:0 0 30px rgba(175,30,45,.5); }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 40px 20px;
-            position: relative;
-            z-index: 2;
-        }
+    .stats-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:30px; margin:50px 0; animation: fadeIn 1s ease-out .6s both; }
+    .player-card {
+      background: linear-gradient(135deg, rgba(26,41,66,.8) 0%, rgba(10,22,40,.8) 100%);
+      border:2px solid var(--highlight); border-radius:15px; padding:30px; position:relative;
+      overflow:hidden; transition:.3s; backdrop-filter: blur(10px);
+    }
+    .player-card:hover { transform: translateY(-10px); border-color:var(--gold); box-shadow:0 15px 40px rgba(0, 217, 255, .3); }
+    .player-card::before { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg, transparent, rgba(0,217,255,.1), transparent); transition:left .5s ease; }
+    .player-card:hover::before { left:100%; }
+    .player-name { font-family:'Bebas Neue', cursive; font-size:2.5rem; margin-bottom:15px; color:var(--highlight); letter-spacing:.05em; }
+    .stat-line { display:flex; justify-content:space-between; align-items:center; margin:15px 0; padding:10px 0; border-bottom:1px solid rgba(232,244,248,.1); font-size:1.2rem; }
+    .stat-label { color:rgba(232,244,248,.7); font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
+    .stat-value { font-family:'Bebas Neue', cursive; font-size:2rem; color:var(--gold); text-shadow:0 0 10px rgba(255,215,0,.3); }
+    .leader { border-color:var(--gold); background: linear-gradient(135deg, rgba(255,215,0,.1) 0%, rgba(26,41,66,.8) 100%); }
+    .leader .player-name { color:var(--gold); }
+    .crown { position:absolute; top:10px; right:10px; font-size:2rem; animation: float 2s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
 
-        header {
-            text-align: center;
-            margin-bottom: 60px;
-            animation: slideDown 0.8s ease-out;
-        }
+    .refresh-btn {
+      background: linear-gradient(135deg, var(--canadiens-red) 0%, #8a1623 100%);
+      color:#fff; border:none; padding:18px 40px; font-size:1.2rem; font-weight:700;
+      text-transform:uppercase; letter-spacing:.1em; border-radius:10px; cursor:pointer; transition:.3s;
+      margin:30px auto; display:block; font-family:'Rajdhani', sans-serif;
+      box-shadow:0 10px 30px rgba(175,30,45,.4);
+    }
+    .refresh-btn:hover { transform: translateY(-3px); box-shadow:0 15px 40px rgba(175,30,45,.6); background: linear-gradient(135deg, #d42434 0%, var(--canadiens-red) 100%); }
 
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+    .details { margin-top:20px; font-size:1.1rem; line-height:1.6; color:rgba(232,244,248,.8); }
+    .timestamp { text-align:center; margin-top:40px; color:rgba(232,244,248,.5); font-size:.9rem; text-transform:uppercase; letter-spacing:.1em; }
 
-        h1 {
-            font-family: 'Bebas Neue', cursive;
-            font-size: clamp(3rem, 8vw, 7rem);
-            letter-spacing: 0.05em;
-            margin-bottom: 10px;
-            background: linear-gradient(135deg, var(--highlight) 0%, var(--bright-ice) 50%, var(--canadiens-red) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-shadow: 0 0 40px rgba(0, 217, 255, 0.3);
-        }
-
-        .tagline {
-            font-size: 1.2rem;
-            color: var(--highlight);
-            text-transform: uppercase;
-            letter-spacing: 0.2em;
-            font-weight: 600;
-        }
-
-        .answer-box {
-            background: rgba(10, 22, 40, 0.6);
-            border: 3px solid var(--canadiens-red);
-            border-radius: 20px;
-            padding: 60px 40px;
-            margin: 40px 0;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 20px 60px rgba(175, 30, 45, 0.3);
-            animation: fadeIn 1s ease-out 0.3s both;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: scale(0.95);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        .answer-box::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(45deg, var(--canadiens-red), var(--highlight), var(--canadiens-red));
-            border-radius: 20px;
-            z-index: -1;
-            opacity: 0;
-            animation: borderGlow 3s ease-in-out infinite;
-        }
-
-        @keyframes borderGlow {
-            0%, 100% { opacity: 0; }
-            50% { opacity: 0.3; }
-        }
-
-        .loading {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--highlight);
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(0, 217, 255, 0.1);
-            border-top: 4px solid var(--highlight);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .answer {
-            font-family: 'Bebas Neue', cursive;
-            font-size: clamp(3rem, 6vw, 5rem);
-            line-height: 1.2;
-            margin: 20px 0;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
-        .answer.yes {
-            color: var(--gold);
-            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
-        }
-
-        .answer.no {
-            color: var(--canadiens-red);
-            text-shadow: 0 0 30px rgba(175, 30, 45, 0.5);
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 30px;
-            margin: 50px 0;
-            animation: fadeIn 1s ease-out 0.6s both;
-        }
-
-        .player-card {
-            background: linear-gradient(135deg, rgba(26, 41, 66, 0.8) 0%, rgba(10, 22, 40, 0.8) 100%);
-            border: 2px solid var(--highlight);
-            border-radius: 15px;
-            padding: 30px;
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-
-        .player-card:hover {
-            transform: translateY(-10px);
-            border-color: var(--gold);
-            box-shadow: 0 15px 40px rgba(0, 217, 255, 0.3);
-        }
-
-        .player-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(0, 217, 255, 0.1), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .player-card:hover::before {
-            left: 100%;
-        }
-
-        .player-name {
-            font-family: 'Bebas Neue', cursive;
-            font-size: 2.5rem;
-            margin-bottom: 15px;
-            color: var(--highlight);
-            letter-spacing: 0.05em;
-        }
-
-        .stat-line {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 15px 0;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(232, 244, 248, 0.1);
-            font-size: 1.2rem;
-        }
-
-        .stat-label {
-            color: rgba(232, 244, 248, 0.7);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .stat-value {
-            font-family: 'Bebas Neue', cursive;
-            font-size: 2rem;
-            color: var(--gold);
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
-        }
-
-        .leader {
-            border-color: var(--gold);
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(26, 41, 66, 0.8) 100%);
-        }
-
-        .leader .player-name {
-            color: var(--gold);
-        }
-
-        .crown {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 2rem;
-            animation: float 2s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-        }
-
-        .refresh-btn {
-            background: linear-gradient(135deg, var(--canadiens-red) 0%, #8a1623 100%);
-            color: white;
-            border: none;
-            padding: 18px 40px;
-            font-size: 1.2rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin: 30px auto;
-            display: block;
-            font-family: 'Rajdhani', sans-serif;
-            box-shadow: 0 10px 30px rgba(175, 30, 45, 0.4);
-        }
-
-        .refresh-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 40px rgba(175, 30, 45, 0.6);
-            background: linear-gradient(135deg, #d42434 0%, var(--canadiens-red) 100%);
-        }
-
-        .refresh-btn:active {
-            transform: translateY(0);
-        }
-
-        .details {
-            margin-top: 20px;
-            font-size: 1.1rem;
-            line-height: 1.6;
-            color: rgba(232, 244, 248, 0.8);
-        }
-
-        .timestamp {
-            text-align: center;
-            margin-top: 40px;
-            color: rgba(232, 244, 248, 0.5);
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-        }
-
-        @media (max-width: 768px) {
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .answer-box {
-                padding: 40px 20px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1>HUTSON VS SUZUKI</h1>
-            <div class="tagline">Montreal Canadiens Points Race</div>
-        </header>
-
-        <div class="answer-box" id="answerBox">
-            <div class="loading" id="loading">
-                <div>Checking NHL Stats...</div>
-                <div class="spinner"></div>
-            </div>
-            <div id="answer" style="display: none;">
-                <div class="answer" id="answerText"></div>
-                <div class="details" id="details"></div>
-            </div>
-        </div>
-
-        <div class="stats-grid" id="statsGrid" style="display: none;">
-            <div class="player-card" id="hutsonCard">
-                <div class="player-name">Lane Hutson</div>
-                <div class="stat-line">
-                    <span class="stat-label">Points</span>
-                    <span class="stat-value" id="hutsonPoints">-</span>
-                </div>
-                <div class="stat-line">
-                    <span class="stat-label">Goals</span>
-                    <span class="stat-value" id="hutsonGoals">-</span>
-                </div>
-                <div class="stat-line">
-                    <span class="stat-label">Assists</span>
-                    <span class="stat-value" id="hutsonAssists">-</span>
-                </div>
-            </div>
-
-            <div class="player-card" id="suzukiCard">
-                <div class="player-name">Nick Suzuki</div>
-                <div class="stat-line">
-                    <span class="stat-label">Points</span>
-                    <span class="stat-value" id="suzukiPoints">-</span>
-                </div>
-                <div class="stat-line">
-                    <span class="stat-label">Goals</span>
-                    <span class="stat-value" id="suzukiGoals">-</span>
-                </div>
-                <div class="stat-line">
-                    <span class="stat-label">Assists</span>
-                    <span class="stat-value" id="suzukiAssists">-</span>
-                </div>
-            </div>
-        </div>
-
-        <button class="refresh-btn" id="refreshBtn" style="display: none;">Refresh Stats</button>
-
-        <div class="timestamp" id="timestamp"></div>
-    </div>
-
-    <script>
-        async function fetchStats() {
-            const answerBox = document.getElementById('answer');
-            const loading = document.getElementById('loading');
-            const statsGrid = document.getElementById('statsGrid');
-            const refreshBtn = document.getElementById('refreshBtn');
-            const answerText = document.getElementById('answerText');
-            const details = document.getElementById('details');
-            const timestamp = document.getElementById('timestamp');
-
-            loading.style.display = 'block';
-            answerBox.style.display = 'none';
-            statsGrid.style.display = 'none';
-            refreshBtn.style.display = 'none';
-
-            try {
-                const response = await fetch("https://api.anthropic.com/v1/messages", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        model: "claude-sonnet-4-20250514",
-                        max_tokens: 1000,
-                        messages: [
-                            {
-                                role: "user",
-                                content: "Search the web for the current 2025-26 NHL season stats for Lane Hutson and Nick Suzuki of the Montreal Canadiens. Find their total points (goals + assists), goals, and assists for THIS CURRENT 2025-26 season. You must respond with ONLY a valid JSON object and absolutely nothing else - no explanations, no markdown, no preamble. Format: {\"hutson\": {\"points\": number, \"goals\": number, \"assists\": number}, \"suzuki\": {\"points\": number, \"goals\": number, \"assists\": number}}"
-                            }
-                        ],
-                        tools: [
-                            {
-                                "type": "web_search_20250305",
-                                "name": "web_search"
-                            }
-                        ]
-                    })
-                });
-
-                const data = await response.json();
-                
-                const fullResponse = data.content
-                    .map(item => (item.type === "text" ? item.text : ""))
-                    .filter(Boolean)
-                    .join("\n");
-
-                // More aggressive cleaning - extract JSON from response
-                let cleanResponse = fullResponse.trim();
-                
-                // Remove markdown code blocks
-                cleanResponse = cleanResponse.replace(/```json\s*/g, "").replace(/```\s*/g, "");
-                
-                // Try to find JSON object in the response
-                const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    cleanResponse = jsonMatch[0];
-                }
-                
-                const stats = JSON.parse(cleanResponse);
-
-                document.getElementById('hutsonPoints').textContent = stats.hutson.points;
-                document.getElementById('hutsonGoals').textContent = stats.hutson.goals;
-                document.getElementById('hutsonAssists').textContent = stats.hutson.assists;
-
-                document.getElementById('suzukiPoints').textContent = stats.suzuki.points;
-                document.getElementById('suzukiGoals').textContent = stats.suzuki.goals;
-                document.getElementById('suzukiAssists').textContent = stats.suzuki.assists;
-
-                const hutsonCard = document.getElementById('hutsonCard');
-                const suzukiCard = document.getElementById('suzukiCard');
-                hutsonCard.classList.remove('leader');
-                suzukiCard.classList.remove('leader');
-                hutsonCard.querySelectorAll('.crown').forEach(el => el.remove());
-                suzukiCard.querySelectorAll('.crown').forEach(el => el.remove());
-
-                const hutsonHasMore = stats.hutson.points > stats.suzuki.points;
-                const pointsDiff = Math.abs(stats.hutson.points - stats.suzuki.points);
-
-                if (hutsonHasMore) {
-                    answerText.textContent = 'YES!';
-                    answerText.className = 'answer yes';
-                    details.textContent = `Lane Hutson leads with ${stats.hutson.points} points vs Nick Suzuki's ${stats.suzuki.points} points (${pointsDiff} point${pointsDiff !== 1 ? 's' : ''} ahead)`;
-                    hutsonCard.classList.add('leader');
-                    hutsonCard.insertAdjacentHTML('afterbegin', '<div class="crown">👑</div>');
-                } else if (stats.suzuki.points > stats.hutson.points) {
-                    answerText.textContent = 'NO';
-                    answerText.className = 'answer no';
-                    details.textContent = `Nick Suzuki leads with ${stats.suzuki.points} points vs Lane Hutson's ${stats.hutson.points} points (${pointsDiff} point${pointsDiff !== 1 ? 's' : ''} ahead)`;
-                    suzukiCard.classList.add('leader');
-                    suzukiCard.insertAdjacentHTML('afterbegin', '<div class="crown">👑</div>');
-                } else {
-                    answerText.textContent = 'TIED!';
-                    answerText.className = 'answer yes';
-                    details.textContent = `Both players are tied at ${stats.hutson.points} points`;
-                    hutsonCard.classList.add('leader');
-                    suzukiCard.classList.add('leader');
-                    hutsonCard.insertAdjacentHTML('afterbegin', '<div class="crown">👑</div>');
-                    suzukiCard.insertAdjacentHTML('afterbegin', '<div class="crown">👑</div>');
-                }
-
-                loading.style.display = 'none';
-                answerBox.style.display = 'block';
-                statsGrid.style.display = 'grid';
-                refreshBtn.style.display = 'block';
-
-                const now = new Date();
-                timestamp.textContent = `Last updated: ${now.toLocaleString()}`;
-
-            } catch (error) {
-                console.error('Error fetching stats:', error);
-                loading.innerHTML = '<div style="color: var(--canadiens-red);">Error loading stats. Please refresh the page.</div>';
-            }
-        }
-
-        document.getElementById('refreshBtn').addEventListener('click', fetchStats);
-
-        fetchStats();
-    </script>
-</body>
-</html>
+    @media (max-width:768px) {
+      .stats-grid { grid-template-columns:1fr; }
+      .answer-box { padding:40px 20px; }
