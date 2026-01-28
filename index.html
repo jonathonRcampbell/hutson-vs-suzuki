@@ -5,11 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <title>Hutson vs Suzuki — Points Tracker</title>
 
-  <!-- ✅ Correct Google Fonts links (no bare URLs) -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
-
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
 
   <style>
     :root { --ice-blue:#0a1628; --canadiens-red:#af1e2d; --bright-ice:#e8f4f8; --highlight:#00d9ff; --gold:#ffd700; }
@@ -109,39 +108,15 @@
       return String(start)+String(start+1);
     }
 
-    // Known IDs (verified on NHL.com player pages)
-  
-const FALLBACK_IDS = {
-  HUTSON: '8483457', // Lane Hutson
-  SUZUKI: '8480018'  // Nick Suzuki
-};
-
-
-    // --- Suggest ID from name, with fallback ---
-    async function getPlayerId(fullName, fallbackId){
-      try{
-        const q=encodeURIComponent(fullName.toLowerCase());
-        const url=`https://suggest.svc.nhl.com/svc/suggest/v1/minplayers/${q}/5`;
-        const r=await fetch(url,{mode:'cors'});
-        if(!r.ok) throw new Error('Suggest HTTP '+r.status);
-        const data=await r.json();
-        const items=(data.suggestions||[]).map(s=>s.split('|'))
-          .map(a=>({id:a[0],last:(a[1]||'').toLowerCase(),first:(a[2]||'').toLowerCase()}));
-        if(!items.length) throw new Error('No suggestions');
-        const [first,last]=fullName.toLowerCase().split(' ');
-        const exact=items.find(p=>p.first===first && p.last===last) || items[0];
-        console.debug('Suggest OK for', fullName, '→', exact.id);
-        return exact.id;
-      }catch(err){
-        console.warn('Suggest failed for', fullName, '→ using fallback ID', fallbackId, err);
-        return fallbackId;
-      }
-    }
+    // --- Hardcoded player IDs (from NHL.com) ---
+    // Lane Hutson: 8483457 ; Nick Suzuki: 8480018
+    // (We skip the Suggest service entirely to avoid DNS/ad-block hiccups.)  [1](https://mcgill-my.sharepoint.com/personal/jonathon_campbell_mcgill_ca/Documents/Microsoft%20Copilot%20Chat%20Files/index.html)[2](https://github.com/jonathonRcampbell/hutson-vs-suzuki)
+    const IDS = { hutson: '8483457', suzuki: '8480018' };
 
     // --- NHL Stats API: single-season stats ---
     async function getSeasonStats(playerId, season){
       const url=`https://statsapi.web.nhl.com/api/v1/people/${playerId}/stats?stats=statsSingleSeason&season=${season}`;
-      const r=await fetch(url,{mode:'cors'});
+      const r=await fetch(url,{mode:'cors', cache:'no-cache'});
       if(!r.ok) throw new Error('Stats HTTP '+r.status);
       const j=await r.json();
       const stat=j?.stats?.[0]?.splits?.[0]?.stat || {};
@@ -174,6 +149,7 @@ const FALLBACK_IDS = {
       hutsonCard.classList.remove('leader'); suzukiCard.classList.remove('leader');
       hutsonCard.querySelectorAll('.crown').forEach(el=>el.remove());
       suzukiCard.querySelectorAll('.crown').forEach(el=>el.remove());
+
       if(hutson.points > suzuki.points){
         hutsonCard.classList.add('leader'); hutsonCard.insertAdjacentHTML('afterbegin','<div class="crown">👑</div>');
         answerText.textContent='YES!'; answerText.className='answer yes';
@@ -192,47 +168,32 @@ const FALLBACK_IDS = {
       timestamp.textContent='Last updated: '+new Date().toLocaleString();
     }
 
-  
-async function fetchAndUpdate(){
-  const loading=document.getElementById('loading');
-  const answerBox=document.getElementById('answer');
-  const statsGrid=document.getElementById('statsGrid');
-  const refreshBtn=document.getElementById('refreshBtn');
-  loading.style.display='block'; answerBox.style.display='none'; statsGrid.style.display='none'; refreshBtn.style.display='none';
+    async function fetchAndUpdate(){
+      const loading=document.getElementById('loading');
+      const answerBox=document.getElementById('answer');
+      const statsGrid=document.getElementById('statsGrid');
+      const refreshBtn=document.getElementById('refreshBtn');
+      loading.style.display='block'; answerBox.style.display='none'; statsGrid.style.display='none'; refreshBtn.style.display='none';
 
-  try{
-    const season=currentSeasonCode(new Date());
+      try{
+        const season=currentSeasonCode(new Date());
+        console.debug('Season code:', season);
 
-    // ✅ Use FALLBACK_IDS (with underscore) for both players
-    const [hutsonId, suzukiId]=await Promise.all([
-      getPlayerId('Lane Hutson', FALLBACK_IDS.HUTSON),
-      getPlayerId('Nick Suzuki', FALLBACK_IDS.SUZUKI)
-    ]);
+        const [hutson, suzuki]=await Promise.all([
+          getSeasonStats(IDS.hutson, season),
+          getSeasonStats(IDS.suzuki, season)
+        ]);
 
-    console.debug('Using IDs → Hutson:', hutsonId, 'Suzuki:', suzukiId);
-
-    // Now fetch season stats; this still works even if Suggest failed
-    const [hutson, suzuki]=await Promise.all([
-      getSeasonStats(hutsonId, season),
-      getSeasonStats(suzukiId, season)
-    ]);
-
-    render(hutson, suzuki);
-  }catch(e){
-    console.error('Final stats error:', e);
-    loading.innerHTML='<div style="color: var(--canadiens-red);">Error loading stats. Please refresh.</div>';
-  }
-}
-
-    document.getElementById('refreshBtn').addEventListener('click', fetchAndUpdate);
-    fetchAndUpdate();
+        render(hutson, suzuki);
+      }catch(e){
+        console.error('Final stats error:', e);
+        loading.innerHTML='<div style="color: var(--canadiens-red);">Error loading stats. Please refresh.</div>';
+     ndUpdate();
   </script>
 
   <!-- Data sources:
-       - Player IDs: NHL Suggest service (suggest.svc.nhl.com)  [1](https://www.exploit-db.com/google-hacking-database)
-       - Season stats: NHL Stats API (statsapi.web.nhl.com)     [2](https://github.com/search.html)
-       - Known player IDs for fallback: Suzuki 8480018, Hutson 8483457 (NHL.com player pages)  [3](https://github.com/jonathonRcampbell/hutson-vs-suzuki)[4](https://mcgill-my.sharepoint.com/personal/jonathon_campbell_mcgill_ca/Documents/Microsoft%20Copilot%20Chat%20Files/index.html) -->
+       - NHL Stats API (statsapi.web.nhl.com): statsSingleSeason for current regular season.  -->
+  <!-- Reference: NHL API usage examples & docs/wrappers. --> <!-- [3](https://github.com/search.html) -->
+  <!-- Player IDs verified from official NHL.com player pages (Hutson 8483457, Suzuki 8480018). --> <!-- [1](https://mcgill-my.sharepoint.com/personal/jonathon_campbell_mcgill_ca/Documents/Microsoft%20Copilot%20Chat%20Files/index.html)[2](https://github.com/jonathonRcampbell/hutson-vs-suzuki) -->
 </body>
 </html>
-
-
