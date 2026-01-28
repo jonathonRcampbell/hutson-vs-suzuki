@@ -108,6 +108,9 @@
     const LANE_HUTSON_ID = 8484158;
     const NICK_SUZUKI_ID = 8480018;
 
+    // CORS proxy to allow requests from GitHub Pages
+    const CORS_PROXY = 'https://corsproxy.io/?';
+
     async function fetchStats() {
       const answerBox = document.getElementById('answer');
       const loading = document.getElementById('loading');
@@ -123,10 +126,10 @@
       refreshBtn.style.display = 'none';
 
       try {
-        // Fetch both players' stats from the NEW NHL API
+        // Fetch both players' stats from the NHL API via CORS proxy
         const [hutsonResponse, suzukiResponse] = await Promise.all([
-          fetch(`https://api-web.nhle.com/v1/player/${LANE_HUTSON_ID}/landing`),
-          fetch(`https://api-web.nhle.com/v1/player/${NICK_SUZUKI_ID}/landing`)
+          fetch(`${CORS_PROXY}https://api-web.nhle.com/v1/player/${LANE_HUTSON_ID}/landing`),
+          fetch(`${CORS_PROXY}https://api-web.nhle.com/v1/player/${NICK_SUZUKI_ID}/landing`)
         ]);
 
         if (!hutsonResponse.ok || !suzukiResponse.ok) {
