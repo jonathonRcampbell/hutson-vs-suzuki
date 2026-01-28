@@ -104,97 +104,113 @@
   </div>
 
   <script>
-    // --- Season code (e.g., 20252026) ---
-    function currentSeasonCode(d=new Date()){
-      const y=d.getUTCFullYear(), m=d.getUTCMonth();
-      const start=(m>=7)?y:(y-1); // Aug (7)+ => new season
-      return String(start)+String(start+1);
-    }
+    // NHL player IDs (correct as of 2025-26 season)
+    const LANE_HUTSON_ID = 8484158;
+    const NICK_SUZUKI_ID = 8480018;
 
-    // --- Hardcoded player IDs (from NHL.com) ---
-    // Lane Hutson: 8483457 ; Nick Suzuki: 8480018
-    const IDS = { hutson: '8483457', suzuki: '8480018' };
+    async function fetchStats() {
+      const answerBox = document.getElementById('answer');
+      const loading = document.getElementById('loading');
+      const statsGrid = document.getElementById('statsGrid');
+      const refreshBtn = document.getElementById('refreshBtn');
+      const answerText = document.getElementById('answerText');
+      const details = document.getElementById('details');
+      const timestamp = document.getElementById('timestamp');
 
-    // --- NHL Stats API: single-season stats ---
-    async function getSeasonStats(playerId, season){
-      const url=`https://statsapi.web.nhl.com/api/v1/people/${playerId}/stats?stats=statsSingleSeason&season=${season}`;
-      const r=await fetch(url,{mode:'cors', cache:'no-cache'});
-      if(!r.ok) throw new Error('Stats HTTP '+r.status);
-      const j=await r.json();
-      const stat=j?.stats?.[0]?.splits?.[0]?.stat || {};
-      return {
-        games: stat.games ?? 0,
-        goals: stat.goals ?? 0,
-        assists: stat.assists ?? 0,
-        points: stat.points ?? ((stat.goals ?? 0) + (stat.assists ?? 0))
-      };
-    }
+      loading.style.display = 'block';
+      answerBox.style.display = 'none';
+      statsGrid.style.display = 'none';
+      refreshBtn.style.display = 'none';
 
-    function render(hutson, suzuki){
-      const loading=document.getElementById('loading');
-      const answerBox=document.getElementById('answer');
-      const statsGrid=document.getElementById('statsGrid');
-      const refreshBtn=document.getElementById('refreshBtn');
-      const answerText=document.getElementById('answerText');
-      const details=document.getElementById('details');
-      const timestamp=document.getElementById('timestamp');
-
-      document.getElementById('hutsonPoints').textContent=hutson.points;
-      document.getElementById('hutsonGoals').textContent=hutson.goals;
-      document.getElementById('hutsonAssists').textContent=hutson.assists;
-      document.getElementById('suzukiPoints').textContent=suzuki.points;
-      document.getElementById('suzukiGoals').textContent=suzuki.goals;
-      document.getElementById('suzukiAssists').textContent=suzuki.assists;
-
-      const hutsonCard=document.getElementById('hutsonCard');
-      const suzukiCard=document.getElementById('suzukiCard');
-      hutsonCard.classList.remove('leader'); suzukiCard.classList.remove('leader');
-      hutsonCard.querySelectorAll('.crown').forEach(el=>el.remove());
-      suzukiCard.querySelectorAll('.crown').forEach(el=>el.remove());
-
-      if(hutson.points > suzuki.points){
-        hutsonCard.classList.add('leader'); hutsonCard.insertAdjacentHTML('afterbegin','<div class="crown">👑</div>');
-        answerText.textContent='YES!'; answerText.className='answer yes';
-        details.textContent=`Lane Hutson leads with ${hutson.points} points vs Nick Suzuki's ${suzuki.points}.`;
-      }else if(suzuki.points > hutson.points){
-        suzukiCard.classList.add('leader'); suzukiCard.insertAdjacentHTML('afterbegin','<div class="crown">👑</div>');
-        answerText.textContent='NO'; answerText.className='answer no';
-        details.textContent=`Nick Suzuki leads with ${suzuki.points} points vs Lane Hutson's ${hutson.points}.`;
-      }else{
-        hutsonCard.classList.add('leader'); suzukiCard.classList.add('leader');
-        answerText.textContent='TIED!'; answerText.className='answer yes';
-        details.textContent=`Both players are tied at ${hutson.points} points.`;
-      }
-
-      loading.style.display='none'; answerBox.style.display='block'; statsGrid.style.display='grid'; refreshBtn.style.display='block';
-      timestamp.textContent='Last updated: '+new Date().toLocaleString();
-    }
-
-    async function fetchAndUpdate(){
-      const loading=document.getElementById('loading');
-      const answerBox=document.getElementById('answer');
-      const statsGrid=document.getElementById('statsGrid');
-      const refreshBtn=document.getElementById('refreshBtn');
-      loading.style.display='block'; answerBox.style.display='none'; statsGrid.style.display='none'; refreshBtn.style.display='none';
-
-      try{
-        const season=currentSeasonCode(new Date());
-        console.debug('Season code:', season);
-
-        const [hutson, suzuki]=await Promise.all([
-          getSeasonStats(IDS.hutson, season),
-          getSeasonStats(IDS.suzuki, season)
+      try {
+        // Fetch both players' stats from the NEW NHL API
+        const [hutsonResponse, suzukiResponse] = await Promise.all([
+          fetch(`https://api-web.nhle.com/v1/player/${LANE_HUTSON_ID}/landing`),
+          fetch(`https://api-web.nhle.com/v1/player/${NICK_SUZUKI_ID}/landing`)
         ]);
 
-        render(hutson, suzuki);
-      }catch(e){
-        console.error('Final stats error:', e);
-        loading.innerHTML='<div style="color: var(--canadiens-red);">Error loading stats. Please refresh.</div>';
+        if (!hutsonResponse.ok || !suzukiResponse.ok) {
+          throw new Error('Failed to fetch player data');
+        }
+
+        const hutsonData = await hutsonResponse.json();
+        const suzukiData = await suzukiResponse.json();
+
+        // Extract current season stats
+        const hutsonStats = hutsonData.featuredStats?.regularSeason?.subSeason || {};
+        const suzukiStats = suzukiData.featuredStats?.regularSeason?.subSeason || {};
+
+        const stats = {
+          hutson: {
+            points: hutsonStats.points || 0,
+            goals: hutsonStats.goals || 0,
+            assists: hutsonStats.assists || 0
+          },
+          suzuki: {
+            points: suzukiStats.points || 0,
+            goals: suzukiStats.goals || 0,
+            assists: suzukiStats.assists || 0
+          }
+        };
+
+        document.getElementById('hutsonPoints').textContent = stats.hutson.points;
+        document.getElementById('hutsonGoals').textContent = stats.hutson.goals;
+        document.getElementById('hutsonAssists').textContent = stats.hutson.assists;
+
+        document.getElementById('suzukiPoints').textContent = stats.suzuki.points;
+        document.getElementById('suzukiGoals').textContent = stats.suzuki.goals;
+        document.getElementById('suzukiAssists').textContent = stats.suzuki.assists;
+
+        const hutsonCard = document.getElementById('hutsonCard');
+        const suzukiCard = document.getElementById('suzukiCard');
+        hutsonCard.classList.remove('leader');
+        suzukiCard.classList.remove('leader');
+        hutsonCard.querySelectorAll('.crown').forEach(el => el.remove());
+        suzukiCard.querySelectorAll('.crown').forEach(el => el.remove());
+
+        const hutsonHasMore = stats.hutson.points > stats.suzuki.points;
+        const pointsDiff = Math.abs(stats.hutson.points - stats.suzuki.points);
+
+        if (hutsonHasMore) {
+          answerText.textContent = 'YES!';
+          answerText.className = 'answer yes';
+          details.textContent = `Lane Hutson leads with ${stats.hutson.points} points vs Nick Suzuki's ${stats.suzuki.points} points (${pointsDiff} point${pointsDiff !== 1 ? 's' : ''} ahead)`;
+          hutsonCard.classList.add('leader');
+          hutsonCard.insertAdjacentHTML('afterbegin', '<div class="crown">👑</div>');
+        } else if (stats.suzuki.points > stats.hutson.points) {
+          answerText.textContent = 'NO';
+          answerText.className = 'answer no';
+          details.textContent = `Nick Suzuki leads with ${stats.suzuki.points} points vs Lane Hutson's ${stats.hutson.points} points (${pointsDiff} point${pointsDiff !== 1 ? 's' : ''} ahead)`;
+          suzukiCard.classList.add('leader');
+          suzukiCard.insertAdjacentHTML('afterbegin', '<div class="crown">👑</div>');
+        } else {
+          answerText.textContent = 'TIED!';
+          answerText.className = 'answer yes';
+          details.textContent = `Both players are tied at ${stats.hutson.points} points`;
+          hutsonCard.classList.add('leader');
+          suzukiCard.classList.add('leader');
+          hutsonCard.insertAdjacentHTML('afterbegin', '<div class="crown">👑</div>');
+          suzukiCard.insertAdjacentHTML('afterbegin', '<div class="crown">👑</div>');
+        }
+
+        loading.style.display = 'none';
+        answerBox.style.display = 'block';
+        statsGrid.style.display = 'grid';
+        refreshBtn.style.display = 'block';
+
+        const now = new Date();
+        timestamp.textContent = `Last updated: ${now.toLocaleString()} • 2025-26 Season`;
+
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+        loading.innerHTML = '<div style="color: var(--canadiens-red);">Error loading stats. Please refresh the page.</div>';
       }
     }
 
-    document.getElementById('refreshBtn').addEventListener('click', fetchAndUpdate);
-    fetchAndUpdate();
+    document.getElementById('refreshBtn').addEventListener('click', fetchStats);
+
+    // Load stats on page load
+    fetchStats();
   </script>
 </body>
 </html>
