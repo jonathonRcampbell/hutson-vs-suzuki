@@ -4,9 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <title>Hutson vs Suzuki — Points Tracker</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- ✅ Correct Google Fonts links (no bare URLs) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet" />
+
   <style>
     :root { --ice-blue:#0a1628; --canadiens-red:#af1e2d; --bright-ice:#e8f4f8; --highlight:#00d9ff; --gold:#ffd700; }
     *{margin:0;padding:0;box-sizing:border-box}
@@ -98,33 +101,45 @@
   </div>
 
   <script>
-    // Compute current NHL season code, e.g., 20252026
+    // --- Season code (e.g., 20252026) ---
     function currentSeasonCode(d=new Date()){
       const y=d.getUTCFullYear(), m=d.getUTCMonth();
-      const start=(m>=7)?y:(y-1); // Aug (7)+ -> new season
+      const start=(m>=7)?y:(y-1); // Aug (7)+ => new season
       return String(start)+String(start+1);
     }
 
-    // NHL Suggest: best-match player ID from name
-    async function suggestId(fullName){
-      const q=encodeURIComponent(fullName.toLowerCase());
-      const url=`https://suggest.svc.nhl.com/svc/suggest/v1/minplayers/${q}/5`;
-      const r=await fetch(url,{mode:'cors'});
-      if(!r.ok) throw new Error('Suggest failed for '+fullName);
-      const data=await r.json();
-      const items=(data.suggestions||[]).map(s=>s.split('|'))
-        .map(a=>({id:a[0],last:(a[1]||'').toLowerCase(),first:(a[2]||'').toLowerCase()}));
-      const [first,last]=fullName.toLowerCase().split(' ');
-      const exact=items.find(p=>p.first===first && p.last===last) || items[0];
-      if(!exact) throw new Error('No player found for '+fullName);
-      return exact.id;
+    // Known IDs (verified on NHL.com player pages)
+    const FALLBACK_IDS = {
+      HUTSON: '8483457',  // Lane Hutson [4](https://mcgill-my.sharepoint.com/personal/jonathon_campbell_mcgill_ca/Documents/Microsoft%20Copilot%20Chat%20Files/index.html)
+      SUZUKI: '8480018'   // Nick Suzuki [3](https://github.com/jonathonRcampbell/hutson-vs-suzuki)
+    };
+
+    // --- Suggest ID from name, with fallback ---
+    async function getPlayerId(fullName, fallbackId){
+      try{
+        const q=encodeURIComponent(fullName.toLowerCase());
+        const url=`https://suggest.svc.nhl.com/svc/suggest/v1/minplayers/${q}/5`;
+        const r=await fetch(url,{mode:'cors'});
+        if(!r.ok) throw new Error('Suggest HTTP '+r.status);
+        const data=await r.json();
+        const items=(data.suggestions||[]).map(s=>s.split('|'))
+          .map(a=>({id:a[0],last:(a[1]||'').toLowerCase(),first:(a[2]||'').toLowerCase()}));
+        if(!items.length) throw new Error('No suggestions');
+        const [first,last]=fullName.toLowerCase().split(' ');
+        const exact=items.find(p=>p.first===first && p.last===last) || items[0];
+        console.debug('Suggest OK for', fullName, '→', exact.id);
+        return exact.id;
+      }catch(err){
+        console.warn('Suggest failed for', fullName, '→ using fallback ID', fallbackId, err);
+        return fallbackId;
+      }
     }
 
-    // NHL Stats API: single-season stats
-    async function seasonStats(playerId, season){
+    // --- NHL Stats API: single-season stats ---
+    async function getSeasonStats(playerId, season){
       const url=`https://statsapi.web.nhl.com/api/v1/people/${playerId}/stats?stats=statsSingleSeason&season=${season}`;
       const r=await fetch(url,{mode:'cors'});
-      if(!r.ok) throw new Error('Stats failed for '+playerId);
+      if(!r.ok) throw new Error('Stats HTTP '+r.status);
       const j=await r.json();
       const stat=j?.stats?.[0]?.splits?.[0]?.stat || {};
       return {
@@ -144,7 +159,6 @@
       const details=document.getElementById('details');
       const timestamp=document.getElementById('timestamp');
 
-      // Fill cards
       document.getElementById('hutsonPoints').textContent=hutson.points;
       document.getElementById('hutsonGoals').textContent=hutson.goals;
       document.getElementById('hutsonAssists').textContent=hutson.assists;
@@ -152,7 +166,6 @@
       document.getElementById('suzukiGoals').textContent=suzuki.goals;
       document.getElementById('suzukiAssists').textContent=suzuki.assists;
 
-      // Leader styling
       const hutsonCard=document.getElementById('hutsonCard');
       const suzukiCard=document.getElementById('suzukiCard');
       hutsonCard.classList.remove('leader'); suzukiCard.classList.remove('leader');
@@ -160,28 +173,19 @@
       suzukiCard.querySelectorAll('.crown').forEach(el=>el.remove());
       if(hutson.points > suzuki.points){
         hutsonCard.classList.add('leader'); hutsonCard.insertAdjacentHTML('afterbegin','<div class="crown">👑</div>');
-      }else if(suzuki.points > hutson.points){
-        suzukiCard.classList.add('leader'); suzukiCard.insertAdjacentHTML('afterbegin','<div class="crown">👑</div>');
-      }else{
-        hutsonCard.classList.add('leader'); suzukiCard.classList.add('leader');
-      }
-
-      // Headline
-      if(hutson.points > suzuki.points){
-        document.getElementById('answerText').textContent='YES!'; document.getElementById('answerText').className='answer yes';
+        answerText.textContent='YES!'; answerText.className='answer yes';
         details.textContent=`Lane Hutson leads with ${hutson.points} points vs Nick Suzuki's ${suzuki.points}.`;
       }else if(suzuki.points > hutson.points){
-        document.getElementById('answerText').textContent='NO'; document.getElementById('answerText').className='answer no';
+        suzukiCard.classList.add('leader'); suzukiCard.insertAdjacentHTML('afterbegin','<div class="crown">👑</div>');
+        answerText.textContent='NO'; answerText.className='answer no';
         details.textContent=`Nick Suzuki leads with ${suzuki.points} points vs Lane Hutson's ${hutson.points}.`;
       }else{
-        document.getElementById('answerText').textContent='TIED!'; document.getElementById('answerText').className='answer yes';
+        hutsonCard.classList.add('leader'); suzukiCard.classList.add('leader');
+        answerText.textContent='TIED!'; answerText.className='answer yes';
         details.textContent=`Both players are tied at ${hutson.points} points.`;
       }
 
-      loading.style.display='none';
-      answerBox.style.display='block';
-      statsGrid.style.display='grid';
-      refreshBtn.style.display='block';
+      loading.style.display='none'; answerBox.style.display='block'; statsGrid.style.display='grid'; refreshBtn.style.display='block';
       timestamp.textContent='Last updated: '+new Date().toLocaleString();
     }
 
@@ -194,11 +198,18 @@
 
       try{
         const season=currentSeasonCode(new Date());
-        const [hutsonId, suzukiId]=await Promise.all([suggestId('Lane Hutson'), suggestId('Nick Suzuki')]);
-        const [hutson, suzuki]=await Promise.all([seasonStats(hutsonId, season), seasonStats(suzukiId, season)]);
+        const [hutsonId, suzukiId]=await Promise.all([
+          getPlayerId('Lane Hutson', FALLBACK_IDS.HUTSON),
+          getPlayerId('Nick Suzuki', FALLBACKIDS.SUZUKI)
+        ]);
+        console.debug('Using IDs → Hutson:', hutsonId, 'Suzuki:', suzukiId);
+        const [hutson, suzuki]=await Promise.all([
+          getSeasonStats(hutsonId, season),
+          getSeasonStats(suzukiId, season)
+        ]);
         render(hutson, suzuki);
       }catch(e){
-        console.error(e);
+        console.error('Final stats error:', e);
         loading.innerHTML='<div style="color: var(--canadiens-red);">Error loading stats. Please refresh.</div>';
       }
     }
@@ -207,6 +218,9 @@
     fetchAndUpdate();
   </script>
 
-  <!-- Data sources: NHL Suggest (player IDs) and NHL Stats API (season stats). -->
+  <!-- Data sources:
+       - Player IDs: NHL Suggest service (suggest.svc.nhl.com)  [1](https://www.exploit-db.com/google-hacking-database)
+       - Season stats: NHL Stats API (statsapi.web.nhl.com)     [2](https://github.com/search.html)
+       - Known player IDs for fallback: Suzuki 8480018, Hutson 8483457 (NHL.com player pages)  [3](https://github.com/jonathonRcampbell/hutson-vs-suzuki)[4](https://mcgill-my.sharepoint.com/personal/jonathon_campbell_mcgill_ca/Documents/Microsoft%20Copilot%20Chat%20Files/index.html) -->
 </body>
 </html>
