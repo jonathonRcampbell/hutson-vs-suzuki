@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Does Lane Hutson have more points than Nick Suzuki?</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+           margin: 0; padding: 2rem; display: grid; gap: 1rem; }
+    h1 { font-size: clamp(1.4rem, 4vw, 2rem); margin: 0 0 .5rem; }
+    .card { border: 1px solid color-mix(in oklab, CanvasText 20%, transparent);
+            border-radius: 12px; padding: 1rem; display: grid; gap: .3rem; }
+    .result { font-size: clamp(2rem, 8vw, 4rem); font-weight: 800; }
+    .yes { color: #0a7f27; } .no { color: #b00020; } .tie { color: #5a5a5a; }
+    .meta { font-size: .9rem; opacity: .8; }
+    .pts { font-size: 1.2rem; }
+    footer { margin-top: .5rem; font-size: .85rem; opacity: .8; }
+    code { background: color-mix(in oklab, CanvasText 10%, transparent); padding: .1rem .3rem; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Does <strong>Lane Hutson</strong> have more points than <strong>Nick Suzuki</strong>?</h1>
+
+  <div class="card">
+    <div id="answer" class="result">Checking…</div>
+    <div id="explain" class="pts"></div>
+    <div id="season" class="meta"></div>
+  </div>
+
+  <div class="card">
+    <strong>Details</strong>
+    <div id="lane"></div>
+    <div id="nick"></div>
+  </div>
+
+  <footer>
+    Data: NHL suggest & stats endpoints (unofficial public APIs). No affiliation.  
+    Endpoints: <code>suggest.svc.nhl.com</code> (player ID) & <code>statsapi.web.nhl.com</code> (season stats).
+  </footer>
+
+  <script>
+    // --- Helpers -------------------------------------------------------------
+
+    // Compute current NHL season as YYYYYYYY (e.g., 20252026)
+    function currentSeasonCode(date = new Date()) {
+      // NHL seasons roll over around Oct; if month >= August (7), season starts this calendar year
+      const y = date.getUTCFullYear();
+      const m = date.getUTCMonth(); // 0-11
+      const startYear = (m >= 7) ? y : (y - 1); // Aug(7)..Dec => start this year; else last year
+      return String(startYear) + String(startYear + 1);
+    }
+
+    async function nhlSuggestId(fullName) {
+      // Use NHL suggest endpoint to get player id from name
+      const q = encodeURIComponent(fullName.toLowerCase());
+      const url = `https://suggest.svc.nhl.com/svc/suggest/v1/minplayers/${q}/5`;
+      const res = await fetch(url, { mode: 'cors' });
+      if (!res.ok) throw new Error(`Suggest failed for ${fullName}`);
+      const data = await res.json();
+      // suggestions entry format: "ID|Last|First|..." — choose the best exact-ish match
+      const parts = (data.suggestions || [])
+        .map(s => s.split('|'))
+        .map(a => ({ id: a[0], last: a[1].toLowerCase(), first: a[2].toLowerCase(), raw: a }));
+      const [first, last] = fullName.toLowerCase().split(' ');
+      const exact = parts.find(p => p.first === first && p.last === last) || parts[0];
+      if (!exact) throw new Error(`No player found for ${fullName}`);
+      return exact.id;
+    }
+
+    async function nhlSeasonPoints(playerId, seasonCode) {
+      const url = `https://statsapi.web.nhl.com/api/v1/people/${playerId}/stats?stats=statsSingleSeason&season=${seasonCode}`;
+      const res = await fetch(url, { mode: 'cors' });
+      if (!res.ok) throw new Error(`Stats failed for player ${playerId}`);
+      const json = await res.json();
+      const splits = json?.stats?.[0]?.splits || [];
+      const stat = splits[0]?.stat || {};
+      // Some edge cases (injury/no games) => default zeros
+      return {
+        games: stat.games ?? 0,
+        goals: stat.goals ?? 0,
+        assists: stat.assists ?? 0,
+        points: stat.points ?? ((stat.goals ?? 0) + (stat.assists ?? 0)),
+        timeOnIcePerGame: stat.timeOnIcePerGame ?? null
+      };
+    }
+
+    function show(answer, lane, nick, seasonCode) {
+      const $answer = document.getElementById('answer');
+      const $explain = document.getElementById('explain');
+      const $season = document.getElementById('season');
+      const $lane = document.getElementById('lane');
+      const $nick = document.getElementById('nick');
+
+      $answer.textContent = answer.text;
+      $answer.className = `result ${answer.class}`;
+
+      $explain.textContent =
+        `Lane Hutson: ${lane.points} pts (${lane.goals} G, ${lane.assists} A) • `
+        + `Nick Suzuki: ${nick.points} pts (${nick.goals} G, ${nick.assists} A)`;
+
+      const seasonPretty = `${seasonCode.slice(0,4)}–${seasonCode.slice(6,8)}`;
+      $season.textContent = `Season: ${seasonPretty} (regular season). Updated: ${new Date().toLocaleString()}`;
+
+      $lane.textContent = `Lane Hutson — GP ${lane.games}, TOI/GP ${lane.timeOnIcePerGame ?? 'n/a'}`;
+      $nick.textContent = `Nick Suzuki — GP ${nick.games}, TOI/GP ${nick.timeOnIcePerGame ?? 'n/a'}`;
+    }
+
+    // --- Orchestration -------------------------------------------------------
+
+    (async () => {
+      try {
+        const season = currentSeasonCode(new Date()); // auto
+        const [laneId, nickId] = await Promise.all([
+          nhlSuggestId('Lane Hutson'),
+          nhlSuggestId('Nick Suzuki')
+        ]);
+        const [lane, nick] = await Promise.all([
+          nhlSeasonPoints(laneId, season),
+          nhlSeasonPoints(nickId, season)
+        ]);
+
+        let answer;
+        if (lane.points > nick.points) {
+          answer = { text: 'YES', class: 'yes' };
+        } else if (lane.points < nick.points) {
+          answer = { text: 'NO', class: 'no' };
+        } else {
+          answer = { text: 'TIED', class: 'tie' };
+        }
+        show(answer, lane, nick, season);
+      } catch (err) {
+        console.error(err);
+        document.getElementById('answer').textContent = 'Error fetching data';
+        document.getElementById('explain').textContent = 'Try refreshing in a few seconds.';
+      }
+    })();
+  </script>
+</body>
+</html>
