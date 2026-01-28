@@ -222,7 +222,7 @@ async function fetchAndUpdate(){
     console.error('Final stats error:', e);
     loading.innerHTML='<div style="color: var(--canadiens-red);">Error loading stats. Please refresh.</div>';
   }
-
+}
 
     document.getElementById('refreshBtn').addEventListener('click', fetchAndUpdate);
     fetchAndUpdate();
@@ -234,4 +234,5 @@ async function fetchAndUpdate(){
        - Known player IDs for fallback: Suzuki 8480018, Hutson 8483457 (NHL.com player pages)  [3](https://github.com/jonathonRcampbell/hutson-vs-suzuki)[4](https://mcgill-my.sharepoint.com/personal/jonathon_campbell_mcgill_ca/Documents/Microsoft%20Copilot%20Chat%20Files/index.html) -->
 </body>
 </html>
+
 
