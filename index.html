@@ -6,9 +6,10 @@
   <title>Hutson vs Suzuki — Points Tracker</title>
 
   <!-- ✅ Correct Google Fonts links (no bare URLs) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+
 
   <style>
     :root { --ice-blue:#0a1628; --canadiens-red:#af1e2d; --bright-ice:#e8f4f8; --highlight:#00d9ff; --gold:#ffd700; }
@@ -109,10 +110,12 @@
     }
 
     // Known IDs (verified on NHL.com player pages)
-    const FALLBACK_IDS = {
-      HUTSON: '8483457',  // Lane Hutson [4](https://mcgill-my.sharepoint.com/personal/jonathon_campbell_mcgill_ca/Documents/Microsoft%20Copilot%20Chat%20Files/index.html)
-      SUZUKI: '8480018'   // Nick Suzuki [3](https://github.com/jonathonRcampbell/hutson-vs-suzuki)
-    };
+  
+const FALLBACK_IDS = {
+  HUTSON: '8483457', // Lane Hutson
+  SUZUKI: '8480018'  // Nick Suzuki
+};
+
 
     // --- Suggest ID from name, with fallback ---
     async function getPlayerId(fullName, fallbackId){
@@ -189,30 +192,37 @@
       timestamp.textContent='Last updated: '+new Date().toLocaleString();
     }
 
-    async function fetchAndUpdate(){
-      const loading=document.getElementById('loading');
-      const answerBox=document.getElementById('answer');
-      const statsGrid=document.getElementById('statsGrid');
-      const refreshBtn=document.getElementById('refreshBtn');
-      loading.style.display='block'; answerBox.style.display='none'; statsGrid.style.display='none'; refreshBtn.style.display='none';
+  
+async function fetchAndUpdate(){
+  const loading=document.getElementById('loading');
+  const answerBox=document.getElementById('answer');
+  const statsGrid=document.getElementById('statsGrid');
+  const refreshBtn=document.getElementById('refreshBtn');
+  loading.style.display='block'; answerBox.style.display='none'; statsGrid.style.display='none'; refreshBtn.style.display='none';
 
-      try{
-        const season=currentSeasonCode(new Date());
-        const [hutsonId, suzukiId]=await Promise.all([
-          getPlayerId('Lane Hutson', FALLBACK_IDS.HUTSON),
-          getPlayerId('Nick Suzuki', FALLBACKIDS.SUZUKI)
-        ]);
-        console.debug('Using IDs → Hutson:', hutsonId, 'Suzuki:', suzukiId);
-        const [hutson, suzuki]=await Promise.all([
-          getSeasonStats(hutsonId, season),
-          getSeasonStats(suzukiId, season)
-        ]);
-        render(hutson, suzuki);
-      }catch(e){
-        console.error('Final stats error:', e);
-        loading.innerHTML='<div style="color: var(--canadiens-red);">Error loading stats. Please refresh.</div>';
-      }
-    }
+  try{
+    const season=currentSeasonCode(new Date());
+
+    // ✅ Use FALLBACK_IDS (with underscore) for both players
+    const [hutsonId, suzukiId]=await Promise.all([
+      getPlayerId('Lane Hutson', FALLBACK_IDS.HUTSON),
+      getPlayerId('Nick Suzuki', FALLBACK_IDS.SUZUKI)
+    ]);
+
+    console.debug('Using IDs → Hutson:', hutsonId, 'Suzuki:', suzukiId);
+
+    // Now fetch season stats; this still works even if Suggest failed
+    const [hutson, suzuki]=await Promise.all([
+      getSeasonStats(hutsonId, season),
+      getSeasonStats(suzukiId, season)
+    ]);
+
+    render(hutson, suzuki);
+  }catch(e){
+    console.error('Final stats error:', e);
+    loading.innerHTML='<div style="color: var(--canadiens-red);">Error loading stats. Please refresh.</div>';
+  }
+
 
     document.getElementById('refreshBtn').addEventListener('click', fetchAndUpdate);
     fetchAndUpdate();
@@ -224,3 +234,4 @@
        - Known player IDs for fallback: Suzuki 8480018, Hutson 8483457 (NHL.com player pages)  [3](https://github.com/jonathonRcampbell/hutson-vs-suzuki)[4](https://mcgill-my.sharepoint.com/personal/jonathon_campbell_mcgill_ca/Documents/Microsoft%20Copilot%20Chat%20Files/index.html) -->
 </body>
 </html>
+
