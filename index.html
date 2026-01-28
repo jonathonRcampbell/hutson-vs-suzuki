@@ -182,13 +182,13 @@
         const pointsDiff = Math.abs(stats.hutson.points - stats.suzuki.points);
 
         if (hutsonHasMore) {
-          answerText.textContent = 'YES!';
+          answerText.textContent = 'SHIT! JUSTIN MIGHT BE RIGHT';
           answerText.className = 'answer yes';
           details.textContent = `Lane Hutson leads with ${stats.hutson.points} points vs Nick Suzuki's ${stats.suzuki.points} points (${pointsDiff} point${pointsDiff !== 1 ? 's' : ''} ahead)`;
           hutsonCard.classList.add('leader');
           hutsonCard.insertAdjacentHTML('afterbegin', '<div class="crown">👑</div>');
         } else if (stats.suzuki.points > stats.hutson.points) {
-          answerText.textContent = 'NO';
+          answerText.textContent = 'NO, JUSTIN IS STILL WRONG';
           answerText.className = 'answer no';
           details.textContent = `Nick Suzuki leads with ${stats.suzuki.points} points vs Lane Hutson's ${stats.hutson.points} points (${pointsDiff} point${pointsDiff !== 1 ? 's' : ''} ahead)`;
           suzukiCard.classList.add('leader');
@@ -224,4 +224,5 @@
   </script>
 </body>
 </html>
+
 
