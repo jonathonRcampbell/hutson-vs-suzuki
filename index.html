@@ -139,9 +139,16 @@
         const hutsonData = await hutsonResponse.json();
         const suzukiData = await suzukiResponse.json();
 
+        // Debug: Log the raw data structure
+        console.log('Hutson data:', hutsonData);
+        console.log('Suzuki data:', suzukiData);
+
         // Extract current season stats
         const hutsonStats = hutsonData.featuredStats?.regularSeason?.subSeason || {};
         const suzukiStats = suzukiData.featuredStats?.regularSeason?.subSeason || {};
+
+        console.log('Hutson stats:', hutsonStats);
+        console.log('Suzuki stats:', suzukiStats);
 
         const stats = {
           hutson: {
